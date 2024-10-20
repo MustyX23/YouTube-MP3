@@ -3,38 +3,20 @@
     using YoutubeExplode;
     using YoutubeExplode.Converter;
     using System.Windows.Forms;
-    internal class Program
+    using YouTubeToMP3.Core.Contracts;
+    using YouTubeToMP3.Core;
+    using YouTubeToMP3.Services.Contracts;
+    using YouTubeToMP3.Services;
+
+    public class StartUp
     {
         [STAThread]
         static async Task Main(string[] args)
         {
-            // URL of the YouTube video to download
-            Console.WriteLine("Enter the URL video here: ");
-            string inputUrl = Console.ReadLine();
-
-            Console.WriteLine("Where do you want to download it to? (Enter path!)");
-            // Path to save the MP3 file with the video title
-            string mp3Path = SelectDownloadFolder();
-
-            if (IsPlaylistUrl(inputUrl))
-            {
-                while (inputUrl != null)
-                {
-                    await PlaylistDownloadAndConvertToMp3(inputUrl, mp3Path);
-                    Console.WriteLine("DONE!");
-                    Console.WriteLine("Another Playlist?");
-                    inputUrl = Console.ReadLine();
-                }
-            }
-            // Call function to download and convert video to MP3
-            while (inputUrl != null)
-            {
-                await DownloadAndConvertToMp3(inputUrl, mp3Path);
-                Console.WriteLine("DONE!");
-                Console.WriteLine("Another Song?");
-                inputUrl = Console.ReadLine();
-            }
-
+            YoutubeClient youTube = new YoutubeClient();
+            IYouTubeService youTubeService = new YouTubeService(youTube);
+            IEngine engine = new Engine(youTubeService);
+            await engine.RunAsync();
         }
 
         // Function to download video and convert to MP3 using YouTube video title as filename
@@ -67,7 +49,6 @@
             // Check if the URL contains "list=" which is an indicator of a playlist
             return url.Contains("list=");
         }
-
         static async Task PlaylistDownloadAndConvertToMp3(string playListUrl, string mp3Path)
         {
             var youtube = new YoutubeClient();
@@ -91,7 +72,7 @@
 
                 Console.WriteLine($"MP3 saved to: {fullMp3Path}");
             }
-
+            
         }
         static string SelectDownloadFolder()
         {
