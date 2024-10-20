@@ -10,19 +10,29 @@
         {
             // URL of the YouTube video to download
             Console.WriteLine("Enter the URL video here: ");
-            string videoUrl = Console.ReadLine();
+            string inputUrl = Console.ReadLine();
+
             Console.WriteLine("Where do you want to download it to? (Enter path!)");
             // Path to save the MP3 file with the video title
-
             string mp3Path = SelectDownloadFolder();
 
-            // Call function to download and convert video to MP3
-            while (videoUrl != null)
+            if (IsPlaylistUrl(inputUrl))
             {
-                await DownloadAndConvertToMp3(videoUrl, mp3Path);
+                while (inputUrl != null)
+                {
+                    await PlaylistDownloadAndConvertToMp3(inputUrl, mp3Path);
+                    Console.WriteLine("DONE!");
+                    Console.WriteLine("Another Playlist?");
+                    inputUrl = Console.ReadLine();
+                }
+            }
+            // Call function to download and convert video to MP3
+            while (inputUrl != null)
+            {
+                await DownloadAndConvertToMp3(inputUrl, mp3Path);
                 Console.WriteLine("DONE!");
                 Console.WriteLine("Another Song?");
-                videoUrl = Console.ReadLine();
+                inputUrl = Console.ReadLine();
             }
 
         }
@@ -51,6 +61,37 @@
                 .SetFormat("mp3"));
 
             Console.WriteLine($"MP3 saved to: {fullMp3Path}");
+        }
+        static bool IsPlaylistUrl(string url)
+        {
+            // Check if the URL contains "list=" which is an indicator of a playlist
+            return url.Contains("list=");
+        }
+
+        static async Task PlaylistDownloadAndConvertToMp3(string playListUrl, string mp3Path)
+        {
+            var youtube = new YoutubeClient();
+
+            var playlist = youtube.Playlists.GetVideosAsync(playListUrl);
+
+            await foreach (var video in playlist)
+            {
+                string videoTitle = video.Title;
+
+                string sanitizedTitle = string.Join("_", videoTitle.Split(Path.GetInvalidFileNameChars()));
+
+                string fullMp3Path = Path.Combine(mp3Path, sanitizedTitle + ".mp3");
+
+                string currentDirectory = AppDomain.CurrentDomain.BaseDirectory;
+                string ffmpegPath = Path.Combine(currentDirectory, "ffmpeg", "ffmpeg.exe"); // Assuming ffmpeg is in a subfolder named "ffmpeg"
+
+                await youtube.Videos.DownloadAsync(video.Url, fullMp3Path, builder => builder
+                    .SetFFmpegPath(ffmpegPath) // Use dynamic ffmpeg path here
+                    .SetFormat("mp3"));
+
+                Console.WriteLine($"MP3 saved to: {fullMp3Path}");
+            }
+
         }
         static string SelectDownloadFolder()
         {
