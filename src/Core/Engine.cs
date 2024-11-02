@@ -19,19 +19,20 @@
             Console.WriteLine("Where do you want to download it to? (Enter path!)");
             // Path to save the MP3 file with the video title
             string outPutPath = youTubeService.SelectOutputPath();
-
-            if (youTubeService.IsPlaylist(inputUrl))
+            
+            while (inputUrl != null)
             {
-                while (inputUrl != null)
+                if (true)
+                {
+                    await youTubeService.MP4DownloadAsync(inputUrl, outPutPath);
+                }
+                if (youTubeService.IsPlaylist(inputUrl))
                 {
                     await youTubeService.MP3DownloadPlayListAsync(inputUrl, outPutPath);
                     Console.WriteLine("Download finished! Another Playlist?");
                     inputUrl = Console.ReadLine();
-                }                
-            }
-            else
-            {
-                while (inputUrl != null)
+                }
+                else
                 {
                     await youTubeService.MP3DownloadAsync(inputUrl, outPutPath);
                     Console.WriteLine("Download finished! Another Song?");

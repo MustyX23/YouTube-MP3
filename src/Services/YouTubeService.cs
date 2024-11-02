@@ -1,5 +1,6 @@
 ﻿using YoutubeExplode;
 using YoutubeExplode.Converter;
+using YoutubeExplode.Videos;
 using YouTubeToMP3.Services.Contracts;
 
 namespace YouTubeToMP3.Services
@@ -68,17 +69,49 @@ namespace YouTubeToMP3.Services
 
         public async Task MP3DownloadPlayListAsync(string inputUrl, string outputPath)
         {
-            //var playlist = youtube.Playlists.GetVideosAsync(inputUrl);
             var downloadTasks = new List<Task>();
 
             await foreach (var video in youtube.Playlists.GetVideosAsync(inputUrl))
             {
-                // Start downloading videos in parallel
                 downloadTasks.Add(MP3DownloadAsync(video.Url, outputPath));
             }
 
-            // Wait for all download tasks to complete
             await Task.WhenAll(downloadTasks);
+        }
+
+        public async Task MP4DownloadAsync(string inputUrl, string outputPath)
+        {
+            var video = GetVideoAsync(inputUrl);
+
+            string videoTitle = video.Result.Title;
+
+            // Remove any invalid characters from the title for a valid file name
+            string sanitizedTitle = string.Join("_", videoTitle.Split(Path.GetInvalidFileNameChars()));
+
+            string fullMp4Path = Path.Combine(outputPath, sanitizedTitle + ".mp4");
+
+            // Dynamically locate ffmpeg.exe based on the current directory
+            string currentDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string ffmpegPath = Path.Combine(currentDirectory, "ffmpeg", "ffmpeg.exe"); // Assuming ffmpeg is in a subfolder named "ffmpeg"
+
+            // Download and convert the video to MP3
+            await youtube.Videos.DownloadAsync(inputUrl, fullMp4Path, builder => builder
+                .SetFFmpegPath(ffmpegPath) // Use dynamic ffmpeg path here
+                .SetFormat("mp4"));
+
+            //REFACTORY TODO:
+
+            //Video GetVideoInfo(string inputUrl); --Done
+            //string SanitizeVideoTitle(string videoTitle);
+            //string CombinePath(outputPath, sanitizedTitle, format);
+            //DownloadAsync should pass as a parameter the file format.
+
+            Console.WriteLine($"MP4 saved to: {fullMp4Path}");
+        }
+        private async Task<Video> GetVideoAsync(string inputUrl)
+        {
+            var video = await youtube.Videos.GetAsync(inputUrl);
+            return video;
         }
     }
 }
